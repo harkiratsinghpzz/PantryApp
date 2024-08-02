@@ -1,95 +1,90 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import { Box, Stack, Typography, TextField, Paper } from "@mui/material";
+import { useEffect, useState } from "react";
+import { collection, getDocs, query } from "firebase/firestore";
+import { db } from "./firebase"; // Adjust the path to your actual Firebase configuration
+import PantryForm from "./PantryForm"; // Adjust the path to your actual form component
 
 export default function Home() {
+  const [material, setMaterial] = useState([]);
+  const [search, setSearch] = useState('');
+  const [currentItem, setCurrentItem] = useState(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const snapshot = await getDocs(query(collection(db, 'material')));
+        const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setMaterial(items);
+      } catch (error) {
+        console.error("Error fetching data: ", error);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  const handleItemAdded = (item) => setMaterial([...material, item]);
+  const handleItemUpdated = (item) => setMaterial(material.map(m => m.id === item.id ? item : m));
+  const handleItemDeleted = (id) => setMaterial(material.filter(m => m.id !== id));
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+    <Box width="100vw" height="100vh" display="flex" justifyContent="center" alignItems="center" flexDirection="column" p={4} bgcolor="#f7f7f7">
+      <Box width="800px" bgcolor="blue" p={2} borderRadius="8px" boxShadow={3}>
+        <Typography variant="h2" color="white" textAlign="center">
+          Pantry Item
+        </Typography>
+      </Box>
+      <Box width="800px" my={2}>
+        <PantryForm
+          currentItem={currentItem}
+          onItemAdded={handleItemAdded}
+          onItemUpdated={handleItemUpdated}
+          onItemDeleted={handleItemDeleted}
         />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      </Box>
+      <TextField
+        label="Search Items"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        fullWidth
+        margin="normal"
+        variant="outlined"
+        InputProps={{
+          style: {
+            borderRadius: "8px",
+          },
+        }}
+      />
+      <Stack width="800px" height="300px" spacing={2} overflow="scroll" border="3px solid #ddd" borderRadius="8px" boxShadow={1} p={2} bgcolor="white">
+        {material.filter(item => item.name.toLowerCase().includes(search.toLowerCase())).map((item) => (
+          <Paper 
+            key={item.id}
+            width="100%"
+            height="100px"
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            elevation={3}
+            onClick={() => setCurrentItem(item)}
+            style={{
+              cursor: 'pointer',
+              padding: '16px',
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              transition: 'background-color 0.3s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f0f0f0')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'white')}
+          >
+            <Typography variant="h4" fontWeight="bold" color="#333">
+              {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
+            </Typography>
+          </Paper>
+        ))}
+      </Stack>
+    </Box>
   );
 }
